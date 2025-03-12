@@ -166,7 +166,8 @@ bool SimpleEQAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* SimpleEQAudioProcessor::createEditor()
 {
-    return new SimpleEQAudioProcessorEditor (*this);
+//    return new SimpleEQAudioProcessorEditor (*this);
+    return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
@@ -181,6 +182,71 @@ void SimpleEQAudioProcessor::setStateInformation (const void* data, int sizeInBy
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout SimpleEQAudioProcessor::createParameterLayout()
+{
+    // Create container to hold plugin params
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+    
+    // Lowcut frequency parameter — to lowcut on a specfic frequency
+    // Rangle: 20 - 20,000 Hz
+    // Step Size: 1
+    // Skew: 0.25 — to make slider move thru lower frequencies faster (more imperceptible at lower frequencies)
+    // Default: 20 Hz — ie. no effect
+    layout.add(std::make_unique<juce::AudioParameterFloat>("LowCut Freq", "LowCut Freq", juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f), 20.f));
+    
+    // Highcut frequency parameter — to highcut on a specfic frequency
+    // Rangle: 20 - 20,000 Hz
+    // Step Size: 1
+    // Skew: 0.25 — to make slider move thru lower frequencies faster (more imperceptible at lower frequencies)
+    // Default: 20,000 Hz — ie. no effect
+    layout.add(std::make_unique<juce::AudioParameterFloat>("HighCut Freq", "HighCut Freq", juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f), 20000.f));
+    
+    // Peak frequency parameter — to highcut on a specfic frequency
+    // Rangle: 20 - 20,000 Hz
+    // Step Size: 1 Hz
+    // Skew: 0.25 — to make slider move thru lower frequencies faster (more imperceptible at lower frequencies)
+    // Default: 750 Hz (roughly centered on EQ)
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Freq", "Peak Freq", juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f), 750.f));
+    
+    // Peak gain parameter
+    // Rangle: -24 - 24 dB
+    // Step Size: 0.5 dB
+    // Skew: 1 (standard curve)
+    // Default: 0 Hz (no gain adjustment)
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Gain", "Peak Gain", juce::NormalisableRange<float>(-24.f, 24.f, 0.5f, 1.f), 0.0f));
+        
+    // Peak Q parameter — how tight/wide band is
+    // Rangle: 0.1 - 10
+    // Step Size: 0.05
+    // Skew: 1 (standard curve)
+    // Default: 1
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Quality", "Peak Quality", juce::NormalisableRange<float>(0.1f, 10.f, 0.05f, 1.f), 1.f));
+    
+    // Create string array of slope values for High & Low-Cut
+    juce::StringArray stringArray;
+    stringArray.add("6 db/Oct");
+    
+    for (int i = 0; i < 4; i++)
+    {
+        juce::String str;
+        str << (12 + i*12);
+        str << " db/Oct";
+        stringArray.add(str);
+    }
+    
+    // Add Audio Parameter choices for High & Lowcut (6, 12, 24, 36, 48 dB)
+    layout.add(std::make_unique<juce::AudioParameterChoice>("LowCut Slope", "LowCut Slope", stringArray, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("HighCut Slope", "HighCut Slope", stringArray, 0));
+    
+    // Add Audio Parameter choices to bypass each filter
+    layout.add(std::make_unique<juce::AudioParameterBool>("LowCut Bypassed", "LowCut Bypassed", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>("Peak Bypassed", "Peak Bypassed", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>("HighCut Bypassed", "HighCut Bypassed", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>("Analyzer Enabled", "Analyzer Enabled", true));
+
+    return layout;
 }
 
 //==============================================================================
